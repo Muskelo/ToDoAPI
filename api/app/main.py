@@ -1,10 +1,11 @@
-from fastapi import FastAPI, Query
-from .models import Group
+from fastapi import FastAPI
+from .routers import groups, tasks
+from app.errors import init_error_handlers
 
 
 app = FastAPI()
 
+app.include_router(groups.router)
+app.include_router(tasks.router)
 
-@app.get("/{id}")
-def read_root(id: int, name: str = Query(default="World", min_length=4)):
-    return {"message": f"{id}: Hello {name}"}
+init_error_handlers(app)

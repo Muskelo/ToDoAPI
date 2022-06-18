@@ -7,6 +7,9 @@ services:
       - "5432:5432"
     environment:
       POSTGRES_PASSWORD: password
+      PGDATA: /data/postgres
+    volumes:
+       - postgres_data:/data/postgres
 
   api:
     build: ./api
@@ -17,3 +20,6 @@ services:
     user: 1000:1000
     environment:
       SQLALCHEMY_DATABASE_URL: "postgresql+psycopg2://postgres:password@db/postgres"
+
+volumes:
+  postgres_data:
