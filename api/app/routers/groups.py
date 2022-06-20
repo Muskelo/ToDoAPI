@@ -16,7 +16,7 @@ def get_groups_list_endpoint(db: Session = Depends(get_db)):
 
 @router.get('/{group_id}', response_model=Group)
 def get_group_endpoint(group_id: int, db: Session = Depends(get_db)):
-    group = group_crud.get(db, group_id)
+    group = group_crud.get_by_id(db, group_id)
     return group
 
 

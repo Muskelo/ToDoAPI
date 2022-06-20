@@ -21,9 +21,13 @@ def get_tasks_list_endpoint(db: Session = Depends(get_db)):
     return tasks_list
 
 
+# router.add_api_route('/', get_tasks_list_endpoint,
+                     # methods=['get'], response_model=list[Task])
+
+
 @router.get('/{task_id}', response_model=Task)
 def get_task_endpoint(task_id: int, db: Session = Depends(get_db)):
-    task = task_crud.get(db, task_id)
+    task = task_crud.get_by_id(db, task_id)
     return task
 
 

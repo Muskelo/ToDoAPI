@@ -1,6 +1,13 @@
 from sqlalchemy import Column, Integer, String, Boolean, ForeignKey
 from sqlalchemy.orm import relationship
-from .database import Base
+from app.database import Base
+
+
+class UserModel(Base):
+    __tablename__ = "user"
+    id = Column(Integer, primary_key=True)
+    login = Column(String(255), unique=True)
+    password_hash = Column(String(255))
 
 
 class GroupModel(Base):
