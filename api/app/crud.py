@@ -1,6 +1,4 @@
-from typing import Any
 from sqlalchemy.orm import Session
-from sqlalchemy.exc import NoResultFound
 from passlib.hash import pbkdf2_sha256
 from app.models import TaskModel, GroupModel, UserModel
 
@@ -19,16 +17,27 @@ class BaseCRUD:
         items_list = db.query(self.Model).all()
         return items_list
 
-    def get(self, db: Session, filter_by: dict[str, Any] | None = None):
+    def _get_base(self, db: Session, filter_by: dict | None = None):
         query = db.query(self.Model)
 
         if filter_by:
             query = query.filter_by(**filter_by)
 
+        return query
+
+    def get(self, *args, **kwargs):
+        query = self._get_base(*args, **kwargs)
         return query.one()
+
+    def get_or_none(self, *args, **kwargs):
+        query = self._get_base(*args, **kwargs)
+        return query.first()
 
     def get_by_id(self, db: Session, id: int):
         return self.get(db, {"id": id})
+
+    def get_or_none_by_id(self, db: Session, id: int):
+        return self.get_or_none(db, {"id": id})
 
     def update(self, db: Session, id: int, data: dict):
         item = self.get_by_id(db, id)
@@ -48,7 +57,7 @@ class BaseCRUD:
 
 
 class UserCrud(BaseCRUD):
-    def create(self, db: Session, data: dict) -> UserModel:
+    def create(self, db: Session, data: dict):
 
         # change password on password_hash
         password = data.pop('password')
@@ -58,16 +67,20 @@ class UserCrud(BaseCRUD):
         user = super().create(db, data)
         return user
 
-    def authenticate_user(self, db: Session, login: str, password: str) -> UserModel | bool:
-        try:
-            user = self.get(db, {"login": login})
-        except NoResultFound:
-            return False
+    def authenticate_user(self, db: Session, login: str, password: str):
+        user = self.get_or_none(db, {"login": login})
+
+        if not user:
+            return
 
         if not pbkdf2_sha256.verify(password, user.password_hash):
-            return False
+            return
 
         return user
+
+    def get_user_from_payload(self, db: Session, payload):
+        user_id = payload.get("user_id")
+        return user_crud.get_or_none_by_id(db, user_id)
 
 
 task_crud = BaseCRUD(TaskModel)

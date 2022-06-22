@@ -8,6 +8,8 @@ class UserModel(Base):
     id = Column(Integer, primary_key=True)
     login = Column(String(255), unique=True)
     password_hash = Column(String(255))
+    role = Column(String(255), default="user")
+    refresh_token = Column(String(255))
 
 
 class GroupModel(Base):

@@ -1,81 +1,128 @@
-import os
-from typing import Callable
+from typing import Callable, Any
 from datetime import datetime, timedelta
 
-from fastapi import FastAPI, APIRouter, Depends, HTTPException
+from fastapi import Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from sqlalchemy.orm import Session
 from pydantic import BaseModel
 
 
-# CONSTANS
-SECRET_KEY = os.environ['SECRET_KEY']
-ALGORITHM = os.environ['ALGORITHM']
-ACCESS_TOKEN_EXPIRE_MINUTES = int(os.environ['ACCESS_TOKEN_EXPIRE_MINUTES'])
-
-
-# DEPENDENCIES
-oauth2_scheme = OAuth2PasswordBearer('token')
-
-
 # CHEMAS
+
 class Login(BaseModel):
     login: str
     password: str
 
 
+class Refresh(BaseModel):
+    refresh_token: str
+
+
 class Token(BaseModel):
     access_token: str
+    refresh_token: str
     token_type: str
 
 
 # EXCEPTIONS
-# class MissingCallbackError(Exception):
-#     pass
+
+class InvalidCreadentialsError(HTTPException):
+    def __init__(self,
+                 status_code: int = 401,
+                 detail: Any = "Invalid credentials",
+                 headers: dict[str, Any] | None = None) -> None:
+
+        if not headers:
+            headers = {}
+
+        headers["WWW-Authenticate"] = "Bearer"
+        super().__init__(status_code, detail, headers)
 
 
-# UTILS
-def create_access_token(data: dict):
-    to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
-    return encoded_jwt
+class NotEnoughPermissionError(HTTPException):
+    def __init__(self,
+                 status_code: int = 403,
+                 detail: Any = "You don't have permission",
+                 headers: dict[str, Any] | None = None) -> None:
+
+        if not headers:
+            headers = {}
+
+        headers["WWW-Authenticate"] = "Bearer"
+        super().__init__(status_code, detail, headers)
 
 
-# MAIN
-class Auth:
-    def __init__(self, get_db: Callable, authenticate_user: Callable) -> None:
+class Auth():
+    def __init__(self,
+                 secret_key: str,
+                 algorithm: str = "HS256",
+                 access_expire: timedelta = timedelta(minutes=30),
+                 refresh_expire: timedelta = timedelta(days=30),
 
-        # get_db, authenticate_user callbacks
-        self.get_db_callback = get_db
-        self.authenticate_user_callback = authenticate_user
+                 token_url: str = '/token') -> None:
 
-    def create_router(self) -> APIRouter:
-        router = APIRouter(prefix="/token", tags=['auth'])
+        self.oauth2_scheme = OAuth2PasswordBearer(token_url)
 
-        @router.post('/', response_model=Token)
-        def login_for_access_token(request_data: Login, db: Session = Depends(self.get_db_callback)):
-            user = self.authenticate_user_callback(
-                db=db,
-                login=request_data.login,
-                password=request_data.password)
+        self.SECRET_KEY = secret_key
+        self.ALGORITHM = algorithm
+        self.ACCESS_EXPIRE = access_expire
+        self.REFRESH_EXPIRE = refresh_expire
 
+    # utils
+
+    def create_access_token(self, data: dict) -> str:
+        to_encode = data.copy()
+        expire = datetime.utcnow() + self.ACCESS_EXPIRE
+        to_encode.update({"exp": expire})
+
+        return jwt.encode(
+            to_encode,
+            self.SECRET_KEY,
+            algorithm=self.ALGORITHM)
+
+    def create_refresh_token(self, data: dict) -> str:
+        to_encode = data.copy()
+        expire = datetime.utcnow() + self.REFRESH_EXPIRE
+        to_encode.update({"exp": expire})
+
+        return jwt.encode(
+            to_encode,
+            self.SECRET_KEY,
+            algorithm=self.ALGORITHM)
+
+    def decode_token(self, token: str):
+        try:
+            return jwt.decode(token,
+                              self.SECRET_KEY,
+                              algorithms=self.ALGORITHM)
+
+        except JWTError:
+            raise InvalidCreadentialsError(
+                detail="Could not validate credentials",
+            )
+
+    # dependencies
+
+    def create_current_user_dependency(self, get_db: Callable, get_user: Callable):
+
+        def current_user(token: str = Depends(self.oauth2_scheme), db: Session = Depends(get_db)):
+            payload = self.decode_token(token)
+            user = get_user(db, payload)
             if not user:
-                raise HTTPException(
-                    status_code=401,
-                    detail="Incorrect username or password",
-                    headers={"WWW-Authenticate": "Bearer"},
-                )
+                raise InvalidCreadentialsError(detail="Not such user")
+            return user
 
-            access_token = create_access_token({'sub': user.id})
-            return {"access_token": access_token, "token_type": "bearer"}
+        return current_user
 
-        return router
+    def create_role_required_dependency(self, get_roles: Callable):
 
+        class RoleRequired():
+            def __init__(self, roles_requiered: list[str]) -> None:
+                self.roles_requiered = roles_requiered
 
-def init_auth(app: FastAPI, get_db: Callable, authenticate_user: Callable):
-    auth = Auth(get_db=get_db, authenticate_user=authenticate_user)
-    auth_router = auth.create_router()
-    app.include_router(auth_router)
+            def __call__(self, roles=Depends(get_roles)):
+                if not set(roles).intersection(set(self.roles_requiered)):
+                    raise NotEnoughPermissionError
+
+        return RoleRequired
