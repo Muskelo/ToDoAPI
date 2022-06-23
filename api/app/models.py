@@ -11,6 +11,12 @@ class UserModel(Base):
     role = Column(String(255), default="user")
     refresh_token = Column(String(255))
 
+    # relationships
+    groups = relationship("GroupModel", cascade="delete, all",
+                          back_populates="owner")
+    tasks = relationship("TaskModel", cascade="delete, all",
+                         back_populates="owner")
+
 
 class GroupModel(Base):
     __tablename__ = "group"
@@ -18,7 +24,10 @@ class GroupModel(Base):
     id = Column(Integer, primary_key=True)
     name = Column(String(255))
 
+    # foreign keys
+    owner_id = Column(Integer, ForeignKey("user.id"))
     # relationships
+    owner = relationship("UserModel", back_populates="groups")
     tasks = relationship("TaskModel", cascade="delete, all",
                          back_populates="group")
 
@@ -31,7 +40,9 @@ class TaskModel(Base):
     completed = Column(Boolean, default=False)
 
     # foreign keys
+    owner_id = Column(Integer, ForeignKey("user.id"))
     group_id = Column(Integer, ForeignKey("group.id"))
 
     # relationships
+    owner = relationship("UserModel", back_populates="tasks")
     group = relationship("GroupModel", back_populates="tasks")

@@ -7,6 +7,7 @@ class BaseUser(BaseModel):
 
 class User(BaseUser):
     id: int
+    role: str
 
     class Config:
         orm_mode = True
@@ -14,3 +15,8 @@ class User(BaseUser):
 
 class CreateUser(BaseUser):
     password: str
+
+
+class UpdateMe(BaseModel):
+    login: str | None
+    password: str | None

@@ -13,9 +13,13 @@ class BaseCRUD:
         db.commit()
         return item
 
-    def get_list(self, db: Session):
-        items_list = db.query(self.Model).all()
-        return items_list
+    def get_list(self, db: Session, filter_by: dict | None = None):
+        query = db.query(self.Model)
+
+        if filter_by:
+            query = query.filter_by(**filter_by)
+
+        return query.all()
 
     def _get_base(self, db: Session, filter_by: dict | None = None):
         query = db.query(self.Model)
@@ -25,8 +29,8 @@ class BaseCRUD:
 
         return query
 
-    def get(self, *args, **kwargs):
-        query = self._get_base(*args, **kwargs)
+    def get(self, db: Session, filter_by: dict | None = None):
+        query = self._get_base(db, filter_by)
         return query.one()
 
     def get_or_none(self, *args, **kwargs):
@@ -39,9 +43,7 @@ class BaseCRUD:
     def get_or_none_by_id(self, db: Session, id: int):
         return self.get_or_none(db, {"id": id})
 
-    def update(self, db: Session, id: int, data: dict):
-        item = self.get_by_id(db, id)
-
+    def update(self, db: Session, data: dict, item):
         for attr, value in data.items():
             setattr(item, attr, value)
 
@@ -49,23 +51,29 @@ class BaseCRUD:
         db.commit()
         return item
 
-    def delete(self, db: Session, id: int):
-        item = self.get_by_id(db, id)
+    def delete(self, db: Session, item):
         db.delete(item)
         db.commit()
         return item
 
 
 class UserCrud(BaseCRUD):
-    def create(self, db: Session, data: dict):
-
+    def _replace_password_on_hash(self, data: dict) -> dict:
         # change password on password_hash
         password = data.pop('password')
         password_hash = pbkdf2_sha256.hash(password)
         data['password_hash'] = password_hash
+        return data
 
-        user = super().create(db, data)
-        return user
+    def create(self, db: Session, data: dict):
+        data = self._replace_password_on_hash(data)
+        return super().create(db, data)
+
+    def update(self, db: Session, data: dict, item):
+        if "password" in data:
+            data = self._replace_password_on_hash(data)
+            data["refresh_token"] = None
+        return super().update(db, data, item)
 
     def authenticate_user(self, db: Session, login: str, password: str):
         user = self.get_or_none(db, {"login": login})
@@ -77,10 +85,6 @@ class UserCrud(BaseCRUD):
             return
 
         return user
-
-    def get_user_from_payload(self, db: Session, payload):
-        user_id = payload.get("user_id")
-        return user_crud.get_or_none_by_id(db, user_id)
 
 
 task_crud = BaseCRUD(TaskModel)

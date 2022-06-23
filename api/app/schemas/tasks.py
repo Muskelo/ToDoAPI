@@ -3,7 +3,6 @@ from pydantic import BaseModel
 
 class BaseTask(BaseModel):
     name: str
-    group_id: int
 
 
 class CreateTask(BaseTask):
@@ -13,6 +12,7 @@ class CreateTask(BaseTask):
 class Task(BaseTask):
     id: int
     completed: bool
+    group_id: int | None
 
     class Config:
         orm_mode = True
@@ -21,5 +21,4 @@ class Task(BaseTask):
 class UpdateTask(BaseTask):
     name: str | None
     completed: bool | None
-    group_id: int | None
 
