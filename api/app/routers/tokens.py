@@ -12,8 +12,7 @@ router = APIRouter(prefix='/token', tags=["auth"])
 def create_tokens(user):
     access_token = create_access_token({
         "sub": f"auth|{user.login}",
-        "user_id": user.id,
-        "user_role": user.role
+        "user_id": user.id
     })
     refresh_token = create_refresh_token({
         "sub": f"refresh|{user.login}",

@@ -1,16 +1,13 @@
 from pydantic import BaseModel
 
 
-class BaseTask(BaseModel):
+class CreateTask(BaseModel):
     name: str
 
 
-class CreateTask(BaseTask):
-    pass
-
-
-class Task(BaseTask):
+class Task(BaseModel):
     id: int
+    name: str
     completed: bool
     group_id: int | None
 
@@ -18,7 +15,6 @@ class Task(BaseTask):
         orm_mode = True
 
 
-class UpdateTask(BaseTask):
+class UpdateTask(BaseModel):
     name: str | None
     completed: bool | None
-

@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from app.database import SessionLocal
 from app.crud import user_crud
 from app.auth import decode_token
-from app.errors import InvalidCreadentialsError, NotEnoughPermissionError
+from app.errors import InvalidCreadentialsError
 from app.schemas.auth import Login
 
 
@@ -30,17 +30,8 @@ def get_current_user_id(token: str = Depends(oauth2_scheme)) -> int:
     return user_id
 
 
-def get_current_user_role(token: str = Depends(oauth2_scheme)) -> str:
-    payload = decode_token(token)
-    role = payload.get("user_role")
-    if not role:
-        raise InvalidCreadentialsError(
-            detail="Missing role in access token")
-    return role
-
-
 def get_current_user(current_user_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
-    user = user_crud.get_or_none_by_id(db, current_user_id)
+    user = user_crud.get_or_none(db, {"id": current_user_id})
     if not user:
         raise InvalidCreadentialsError(detail="Not such user")
     return user
@@ -65,12 +56,3 @@ def get_authenticated_user(request_data: Login, db: Session = Depends(get_db)):
         raise InvalidCreadentialsError(detail="Invalid login or password")
 
     return user
-
-
-class RoleRequired():
-    def __init__(self, roles_requiered: list[str]) -> None:
-        self.roles_requiered = roles_requiered
-
-    def __call__(self, role=Depends(get_current_user_role)):
-        if not role in self.roles_requiered:
-            raise NotEnoughPermissionError

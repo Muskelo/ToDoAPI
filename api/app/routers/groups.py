@@ -36,3 +36,10 @@ def update_group_endpoint(request_body: UpdateGroup, group_id: int, owner_id: in
 def delete_group_endpoint(group_id: int, owner_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
     group = group_crud.get(db, {"id": group_id, "owner_id": owner_id})
     return group_crud.delete(db, group)
+
+
+@router.patch('/{group_id}/add/{task_id}', response_model=Group)
+def add_task_to_group_endpoint(group_id: int,  task_id: int, owner_id: int = Depends(get_current_user_id),  db: Session = Depends(get_db)):
+    group = group_crud.get(db, {"id": group_id, "owner_id": owner_id})
+    task = task_crud.get(db, {"id": task_id, "owner_id": owner_id})
+    return group_crud.add_task(db, group, task)

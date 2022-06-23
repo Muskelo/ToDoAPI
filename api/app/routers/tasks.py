@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm.session import Session
 
-from app.crud import task_crud, group_crud
+from app.crud import task_crud
 from app.dependencies import get_current_user_id, get_db
 from app.schemas.tasks import CreateTask, Task, UpdateTask
 
@@ -32,15 +32,7 @@ def update_task_endpoint(request_body: UpdateTask, task_id: int, owner_id: int =
     return task_crud.update(db, request_body.dict(exclude_none=True), task)
 
 
-@router.patch('/{task_id}/move/{group_id}', response_model=Task)
-def move_task_endpoint(group_id: int,  task_id: int, owner_id: int = Depends(get_current_user_id),  db: Session = Depends(get_db)):
-    # to validate owner of group
-    group = group_crud.get(db, {"id": group_id, "owner_id": owner_id})
-    task = task_crud.get(db, {"id": task_id, "owner_id": owner_id})
-    return task_crud.update(db, {"group_id": group.id}, task)
-
-
 @router.delete('/{task_id}', response_model=Task)
-def delete_task_endpoint(task_id: int, db: Session = Depends(get_db)):
-    task = task_crud.delete(db, task_id)
-    return task
+def delete_task_endpoint(task_id: int, owner_id: int = Depends(get_current_user_id), db: Session = Depends(get_db)):
+    task = task_crud.get(db, {"id": task_id, "owner_id": owner_id})
+    return task_crud.delete(db, task)

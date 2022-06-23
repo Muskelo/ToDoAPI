@@ -1,11 +1,7 @@
 from pydantic import BaseModel
 
 
-class BaseGroup(BaseModel):
-    name: str
-
-
-class _Task(BaseGroup):
+class _Task(BaseModel):
     id: int
     name: str
     completed: bool
@@ -14,16 +10,17 @@ class _Task(BaseGroup):
         orm_mode = True
 
 
-class Group(BaseGroup):
+class Group(BaseModel):
     id: int
+    name: str
     tasks: list[_Task]
 
     class Config:
         orm_mode = True
 
 
-class CreateGroup(BaseGroup):
-    pass
+class CreateGroup(BaseModel):
+    name: str
 
 
 class UpdateGroup(BaseModel):
