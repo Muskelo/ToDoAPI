@@ -14,6 +14,6 @@ class CreateUser(BaseModel):
     password: str
 
 
-class UpdateMe(BaseModel):
+class UpdateUser(BaseModel):
     login: str | None
     password: str | None

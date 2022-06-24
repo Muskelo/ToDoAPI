@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 
-from app.schemas.users import CreateUser, UpdateMe, User
+from app.schemas.users import CreateUser, UpdateUser, User
 from app.crud import user_crud
 from app.dependencies import get_db,  get_current_user
 
@@ -20,7 +20,7 @@ def get_current_user_endpoint(current_user: User = Depends(get_current_user)):
 
 @router.patch('/', response_model=User)
 def update_me_endpoint(
-    request_data: UpdateMe,
+    request_data: UpdateUser,
     current_user=Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
