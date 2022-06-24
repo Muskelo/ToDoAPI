@@ -1,4 +1,4 @@
-# My pet-project to learn FatpAPI
+# My pet-project to learn FastAPI
 
 ## Install
 
