@@ -19,10 +19,17 @@ def get_current_user_endpoint(current_user: User = Depends(get_current_user)):
 
 
 @router.patch('/', response_model=User)
-def update_me_endpoint(request_data: UpdateMe, current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def update_me_endpoint(
+    request_data: UpdateMe,
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     return user_crud.update(db, request_data.dict(exclude_none=True), current_user)
 
 
 @router.delete('/', response_model=User)
-def delete_me_endpoint(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
+def delete_me_endpoint(
+    current_user=Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
     return user_crud.delete(db, current_user)

@@ -18,25 +18,31 @@ def create_tokens(user):
         "sub": f"refresh|{user.login}",
         "user_id": user.id
     })
-
     return access_token, refresh_token
 
 
-@router.post('/', response_model=Token)
-def login_for_access_token(resp: Response, user=Depends(get_authenticated_user),  db: Session = Depends(get_db)):
-    access_token, refresh_token = create_tokens(user)
-
+def set_refresh_token(db: Session, refresh_token: str, resp: Response, user):
     user_crud.update(db, {"refresh_token": refresh_token}, item=user)
     resp.set_cookie("refresh_token", refresh_token, httponly=True)
 
+
+@router.post('/', response_model=Token)
+def login_for_access_token(
+    resp: Response,
+    user=Depends(get_authenticated_user),
+    db: Session = Depends(get_db)
+):
+    access_token, refresh_token = create_tokens(user)
+    set_refresh_token(db, refresh_token, resp, user)
     return {"access_token": access_token, "token_type": "bearer"}
 
 
 @router.get('/refresh', response_model=Token)
-def refresh_token(resp: Response, user=Depends(get_user_by_refresh_token), db: Session = Depends(get_db)):
+def refresh_token(
+    resp: Response,
+    user=Depends(get_user_by_refresh_token),
+    db: Session = Depends(get_db)
+):
     access_token, refresh_token = create_tokens(user)
-
-    user_crud.update(db, {"refresh_token": refresh_token}, item=user)
-    resp.set_cookie("refresh_token", refresh_token, httponly=True)
-
+    set_refresh_token(db, refresh_token, resp, user)
     return {"access_token": access_token, "token_type": "bearer"}

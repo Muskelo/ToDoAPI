@@ -1,6 +1,7 @@
-from sqlalchemy.orm import Session
 from passlib.hash import pbkdf2_sha256
-from app.models import TaskModel, GroupModel, UserModel
+from sqlalchemy.orm import Session
+
+from app.models import GroupModel, TaskModel, UserModel
 
 
 class BaseCRUD:
@@ -15,18 +16,14 @@ class BaseCRUD:
 
     def get_list(self, db: Session, filter_by: dict | None = None):
         query = db.query(self.Model)
-
         if filter_by:
             query = query.filter_by(**filter_by)
-
         return query.all()
 
     def _get_query(self, db: Session, filter_by: dict | None = None):
         query = db.query(self.Model)
-
         if filter_by:
             query = query.filter_by(**filter_by)
-
         return query
 
     def get(self, db: Session, filter_by: dict | None = None):
@@ -40,7 +37,6 @@ class BaseCRUD:
     def update(self, db: Session, data: dict, item):
         for attr, value in data.items():
             setattr(item, attr, value)
-
         db.add(item)
         db.commit()
         return item
@@ -61,7 +57,6 @@ class GroupCRUD(BaseCRUD):
 
 class UserCRUD(BaseCRUD):
     def _replace_password_on_hash(self, data: dict) -> dict:
-        # change password on password_hash
         password = data.pop('password')
         password_hash = pbkdf2_sha256.hash(password)
         data['password_hash'] = password_hash
@@ -80,7 +75,6 @@ class UserCRUD(BaseCRUD):
 
     def authenticate_user(self, db: Session, login: str, password: str):
         user = self.get_or_none(db, {"login": login})
-
         if user and pbkdf2_sha256.verify(password, user.password_hash):
             return user
 
