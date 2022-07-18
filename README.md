@@ -7,7 +7,7 @@
 git clone https://github.com/Muskelo/ToDoAPI.git .
 ```
 
-2. set config in .env like this:
+2. set config in .env like this (i'm hide .env by git-crypt):
 ```
 #POSTGRES
 POSTGRES_PASSWORD=password
