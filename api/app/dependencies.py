@@ -44,8 +44,10 @@ def get_user_by_refresh_token(
     db: Session = Depends(get_db)
 ):
     decode_token(refresh_token)
+
+    # raise InvalidCreadentialsError(detail=refresh_token)
     user = user_crud.get_or_none(db, {"refresh_token": refresh_token})
-    if not user is None:
+    if user is None:
         raise InvalidCreadentialsError(detail="Invalid refresh token")
     return user
 
